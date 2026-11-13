@@ -96,6 +96,21 @@ public class Main {
             );
         }
 
+        // 4. Análise sintática
+        System.out.println("\n===== ANÁLISE SINTÁTICA =====");
+
+        Parser parser = new Parser(tokens);
+        parser.parse();
+
+        System.out.println("Análise sintática concluída com sucesso.");
+
+        // 5. Análise semântica
+        SemanticAnalyzer semanticAnalyzer =
+                new SemanticAnalyzer(tokens);
+
+        semanticAnalyzer.exibirResultado();
+
+
         System.out.println("\n===== FIM DA ANÁLISE =====");
         System.out.println("Total de tokens: " + tokens.size());
         System.out.println("Total de símbolos: " + symbols.size());
