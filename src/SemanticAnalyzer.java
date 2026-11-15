@@ -26,65 +26,85 @@ public class SemanticAnalyzer {
         }
     }
 
-    public List<String> analisar() {
+private void adicionarErro(String erro) {
+    if (!erros.contains(erro)) {
+        erros.add(erro);
+    }
+}
 
-        variaveis.clear();
-        erros.clear();
+private void verificarIncompatibilidade(String tipoEsperado, String tipoRecebido, int linha) {
+    if (!tiposCompativeis(tipoEsperado, tipoRecebido)) {
+        String erro = "[ERRO SEMÂNTICO] Incompatibilidade de tipos na linha "
+                + linha + ": Não é possível atribuir "
+                + tipoRecebido + " a um tipo " + tipoEsperado + ".";
 
-        for (int i = 0; i < tokens.size(); i++) {
+        adicionarErro(erro);
+    }
+}
 
-            Token atual = tokens.get(i);
+public List<String> analisar() {
 
-            // Verifica se existe uma declaração de variável.
-            if (ehDeclaracao(i)) {
+    variaveis.clear();
+    erros.clear();
 
-                String tipo = atual.getValue();
-                Token nome = tokens.get(i + 1);
+    for (int i = 0; i < tokens.size(); i++) {
 
-                variaveis.put(nome.getValue(), tipo);
+        Token atual = tokens.get(i);
 
-                // Verifica a compatibilidade do valor inicial.
-                if (i + 2 < tokens.size()
-                        && tokens.get(i + 2).getValue().equals("=")) {
+        // Verifica se o token representa uma declaração.
+        if (ehDeclaracao(i)) {
 
-                    verificarAtribuicao(
-                            nome.getValue(),
-                            i + 3,
-                            nome.getLine()
-                    );
-                }
+            String tipo = atual.getValue();
+            Token nome = tokens.get(i + 1);
 
-                continue;
+            // Registra a variável antes de verificar sua inicialização.
+            variaveis.put(nome.getValue(), tipo);
+
+            // Verifica a compatibilidade do valor inicial.
+            if (i + 2 < tokens.size()
+                    && tokens.get(i + 2).getValue().equals("=")) {
+
+                verificarAtribuicao(
+                        nome.getValue(),
+                        i + 3,
+                        nome.getLine()
+                );
             }
 
-            // Verifica atribuições a variáveis já declaradas.
-            if (atual.getType() == TokenType.IDENTIFICADOR
-                    && i + 1 < tokens.size()
-                    && tokens.get(i + 1).getValue().equals("=")) {
-
-                String nome = atual.getValue();
-
-                if (!variaveis.containsKey(nome)) {
-
-                    erros.add(
-                            "[ERRO SEMÂNTICO] Variável '" + nome
-                                    + "' utilizada na linha " + atual.getLine()
-                                    + " não foi declarada previamente."
-                    );
-
-                } else {
-
-                    verificarAtribuicao(
-                            nome,
-                            i + 2,
-                            atual.getLine()
-                    );
-                }
-            }
+            // Pula o identificador que acabou de ser declarado.
+            i++;
+            continue;
         }
 
-        return new ArrayList<>(erros);
+        // Verifica atribuições de variáveis já declaradas.
+        if (atual.getType() == TokenType.IDENTIFICADOR
+                && i + 1 < tokens.size()
+                && tokens.get(i + 1).getValue().equals("=")) {
+
+            String nome = atual.getValue();
+
+            if (!variaveis.containsKey(nome)) {
+
+                adicionarErro(
+                        "[ERRO SEMÂNTICO] Variável '" + nome
+                        + "' utilizada na linha " + atual.getLine()
+                        + " não foi declarada previamente."
+                );
+
+            } else {
+
+                verificarAtribuicao(
+                        nome,
+                        i + 2,
+                        atual.getLine()
+                );
+            }
+        }
     }
+
+    return new ArrayList<>(erros);
+}
+
 
     // Identifica declarações simples de variáveis.
     private boolean ehDeclaracao(int i) {
@@ -112,55 +132,48 @@ public class SemanticAnalyzer {
     }
 
     // Verifica se o tipo do valor é compatível com a variável.
-    private void verificarAtribuicao(
-            String nome,
-            int posicaoValor,
-            int linha
-    ) {
+private void verificarAtribuicao(
+        String nome,
+        int posicaoValor,
+        int linha
+) {
 
-        if (posicaoValor >= tokens.size()) {
-            return;
-        }
-
-        String tipoEsperado = variaveis.get(nome);
-        Token valor = tokens.get(posicaoValor);
-
-        String tipoRecebido = identificarTipo(valor);
-
-        // Se for uma variável, consulta seu tipo na tabela semântica.
-        if (valor.getType() == TokenType.IDENTIFICADOR) {
-
-            String tipoVariavel = variaveis.get(valor.getValue());
-
-            if (tipoVariavel == null) {
-
-                erros.add(
-                        "[ERRO SEMÂNTICO] Variável '"
-                                + valor.getValue()
-                                + "' utilizada na linha " + valor.getLine()
-                                + " não foi declarada previamente."
-                );
-
-                return;
-            }
-
-            tipoRecebido = tipoVariavel;
-        }
-
-        if (tipoRecebido == null) {
-            return;
-        }
-
-        if (!tiposCompativeis(tipoEsperado, tipoRecebido)) {
-
-            erros.add(
-                    "[ERRO SEMÂNTICO] Incompatibilidade de tipos na linha "
-                            + linha + ": Não é possível atribuir "
-                            + tipoRecebido + " a um tipo " + tipoEsperado + "."
-            );
-        }
+    if (posicaoValor >= tokens.size()) {
+        return;
     }
 
+    String tipoEsperado = variaveis.get(nome);
+    Token valor = tokens.get(posicaoValor);
+
+    String tipoRecebido = identificarTipo(valor);
+
+    // Se for uma variável, consulta seu tipo na tabela semântica.
+    if (valor.getType() == TokenType.IDENTIFICADOR) {
+
+        String tipoVariavel = variaveis.get(valor.getValue());
+
+        if (tipoVariavel == null) {
+
+            adicionarErro(
+                "[ERRO SEMÂNTICO] Variável '"
+                + valor.getValue()
+                + "' utilizada na linha " + valor.getLine()
+                + " não foi declarada previamente."
+            );
+
+            return;
+        }
+
+        tipoRecebido = tipoVariavel;
+    }
+
+    if (tipoRecebido == null) {
+        return;
+    }
+
+    // Verifica a incompatibilidade de tipos.
+    verificarIncompatibilidade(tipoEsperado, tipoRecebido, linha);
+}
     // Identifica o tipo de um literal.
     private String identificarTipo(Token token) {
 
