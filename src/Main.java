@@ -39,9 +39,6 @@ public class Main {
         } catch (Exception e) {
             // Mostra a mensagem do erro.
             System.err.println("Erro ao analisar o código: " + e.getMessage());
-
-            // Mostra a linha do código em que ocorreu a exceção.
-            e.printStackTrace();
         }
     }
 
@@ -97,12 +94,13 @@ public class Main {
         }
 
         // 4. Análise sintática
-        System.out.println("\n===== ANÁLISE SINTÁTICA =====");
+         System.out.println("\n===== ANÁLISE SINTÁTICA =====");
+        Parser parser = new Parser(tokens, lexer.getSymbolTable());
+        Node ast = parser.parse();
+        System.out.println("Sintaxe correta!");
 
-        Parser parser = new Parser(tokens);
-        parser.parse();
-
-        System.out.println("Análise sintática concluída com sucesso.");
+        System.out.println("-Árvore Sintática-");
+        ast.print();
 
         // 5. Análise semântica
         SemanticAnalyzer semanticAnalyzer =
